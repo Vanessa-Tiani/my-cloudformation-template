@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Template to Create an EC2 instance in a VPC
+Parameters:
+  InstanceType: 
+    Description: WebServer EC2 Instance Type
+    Type: String
+    AllowedValues: #possible values
+      - t1.micro
+      - t2.nano
+      - t2.micro
+      - t2.small
+      - t3.small
+    Default: t3.small
+
+  myKeyName:
+    Description: Please select a key pair value
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: my_key_pair_Learning # Default keypair retrieved from console
+
+  MyVpc:
+    Type: String 
+    Default: vpc-0330a0b27fa7b32f8 # Default VPC ID retrieved from console
+
+  SubnetIds:
+    Type: String 
+    Default: subnet-00ef9f78cccfdb529 # Default subnet ID retrieved from console
+
+  SSHLocation:
+    Description: The IP address range that can be used to SSH to the EC2 instances
+    Type: String
+    MinLength: "9"
+    MaxLength: "18"
+    Default: 108.44.202.123/32
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+  
+  LatestAmiId: # Fetching LatestAmiId from Parameter store
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+
+Resources:
+  MyEC2Instance: # logical name of the resource, launch a ec2 instance
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref LatestAmiId 
+      SubnetId: !Ref SubnetIds
+      KeyName: !Ref myKeyName
+      SecurityGroupIds:
+        - !Ref WebServerSecurityGroup # Referencing another resources!!!
+      Tags: # Give a name to my ec2 instance
+        - Key: Name
+          Value: EC2-Launch
+
+  WebServerSecurityGroup: # create a sg that allows user access ec2 via ssh
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      VpcId: !Ref MyVpc
+      GroupDescription: Enable SSH on port 22
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SSHLocation
