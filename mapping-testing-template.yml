@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: A simple EC2 instance from yaml file using mapping
+
+Parameters:
+  EnvironmentName:
+    Description: Environment Name
+    Type: String
+    AllowedValues: [development, production]
+    ConstraintDescription: must be development or production
+
+Mappings:
+  AWSRegionArch2AMI: #NOT REGION SPECIFIC
+    us-west-2:
+      Linux : ami-04e914639d0cca79a
+      Ubuntu: ami-03f65b8614a860c29
+
+    us-east-1: 
+      Linux: ami-0889a44b331db0194
+      Ubuntu: ami-053b0d53c279acc90
+
+  EnvironmentToInstanceType: # Map Name
+    development:
+      instanceType: t2.micro
+    production:
+      instanceType: t2.small
+    
+Resources:
+  NewKeyPair:
+    Type: 'AWS::EC2::KeyPair'
+    Properties:
+      KeyName: Myec2KeyPair
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !FindInMap [EnvironmentToInstanceType, !Ref 'EnvironmentName', instanceType]
+      SubnetId: subnet-07bb644684d596c50
+      KeyName: !Ref NewKeyPair
+      SecurityGroupIds:
+        - sg-0db6872bf2e0273e9
+      ImageId: !FindInMap [AWSRegionArch2AMI, !Ref 'AWS::Region', Linux] # Fetch the AMI from mapping section
+      Tags:
+        - Key: Name
+          Value: Vanessa-ec2server
+  
